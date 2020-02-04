@@ -6,77 +6,44 @@ from sklearn import metrics
 file_path = './train.csv'
 test_file_path = './test.csv'
 
-dfl = pd.read_csv(file_path).drop('gl',axis=1)
+def run(path):
+    dfl = pd.read_csv(path).drop('gl',axis=1)
 
-sorted_dfl = dfl.sort_values(by='patientid').reset_index()
+    sorted_dfl = dfl.sort_values(by='patientid').reset_index()
 
-## NaN 을 전체 평균값으로 채움 시작
-mean_bps = sorted_dfl['bps'].mean(axis=0).round(1)
-mean_bpd = sorted_dfl['bpd'].mean(axis=0).round(1)
-mean_spo2 = sorted_dfl['spo2'].mean(axis=0).round(1)
-mean_hr = sorted_dfl['hr'].mean(axis=0).round(1)
+    ## NaN 을 id 별 평균값으로 채움 시작
+    sorted_dfl['bps'] = sorted_dfl.groupby('patientid')['bps'].transform(lambda x: x.fillna(x.mean()))
+    sorted_dfl['bpd'] = sorted_dfl.groupby('patientid')['bpd'].transform(lambda x: x.fillna(x.mean()))
+    sorted_dfl['spo2'] = sorted_dfl.groupby('patientid')['spo2'].transform(lambda x: x.fillna(x.mean()))
+    sorted_dfl['hr'] = sorted_dfl.groupby('patientid')['hr'].transform(lambda x: x.fillna(x.mean()))
 
-# todo: 전체 평균->유저별 평균으로 고쳐야함
-sorted_dfl['bps'].fillna(mean_bps, inplace=True)
-sorted_dfl['bpd'].fillna(mean_bpd, inplace=True)
-sorted_dfl['spo2'].fillna(mean_spo2, inplace=True)
-sorted_dfl['hr'].fillna(mean_hr, inplace=True)
+    ## di 또는 chf 를 측정하지 않은 환자를 위한 채움
+    sorted_dfl['di'].fillna(0,inplace=True)
+    sorted_dfl['chf'].fillna(0,inplace=True)
 
-## di 또는 chf 를 측정하지 않은 환자를 위한 채움
-sorted_dfl['di'].fillna(0,inplace=True)
-sorted_dfl['chf'].fillna(0,inplace=True)
+    # spo2 없는 사람이 꽤 됨
+    sorted_dfl['spo2'].fillna(0,inplace=True)
 
-## 채움 끝
+    # alert -> Yes == 1, No == 0
+    sorted_dfl['alert'] = sorted_dfl['alert'].apply(lambda x: 1 if x == 'Yes' else 0)
 
-# Yes == 1, No == 0
-sorted_dfl['alert'] = sorted_dfl['alert'].apply(lambda x: 1 if x == 'Yes' else 0)
+    # gender -> F == 1, M == 0
+    sorted_dfl['gender'] = sorted_dfl['gender'].apply(lambda x: 1 if x == 'F' else 0)
+    
+    # sorted_dfl.to_csv('./result.csv')
 
-# F == 1, M == 0
-sorted_dfl['gender'] = sorted_dfl['gender'].apply(lambda x: 1 if x == 'F' else 0)
+    x = sorted_dfl[['bps','gender','bpd','spo2','hr','age','di','copd','chf','ht','afib']]
+    y = sorted_dfl[['alert']]
 
-x = sorted_dfl[['bps','gender','bpd','hr','age','di','copd','chf','ht','afib']]
-y = sorted_dfl[['alert']]
-# sorted_dfl['age'] = sorted_dfl['age'].astype('int')
-x_train, x_test, y_train, y_test = train_test_split(x,y,test_size=0.3)
 
-forest = RandomForestClassifier(n_estimators=100)
-forest.fit(x_train, y_train.values.ravel())
+    x_train, x_test, y_train, y_test = train_test_split(x,y,test_size=0.3,random_state=0)
 
-y_pred = forest.predict_proba(x_test)
+    forest = RandomForestClassifier(n_estimators=100, n_jobs=4,random_state=0)
+    
+    forest.fit(x_train, y_train.values.ravel())
 
-print(type(y_pred))
-print(type(y_test.to_numpy()))
-print(metrics.roc_auc_score(y_test.to_numpy(),y_pred))
+    y_pred = forest.predict(x_test)
+    print('accuracy_score :',metrics.accuracy_score(y_test,y_pred))
+    print('roc_auc :',metrics.roc_auc_score(y_test.to_numpy(),y_pred))
 
-print('test 시작')
-test_dfl = pd.read_csv(test_file_path).drop('gl',axis=1)
-
-sorted_test_dfl = test_dfl.sort_values(by='patientid').reset_index()
-
-## NaN 을 전체 평균값으로 채움 시작
-mean_bps = sorted_test_dfl['bps'].mean(axis=0).round(1)
-mean_bpd = sorted_test_dfl['bpd'].mean(axis=0).round(1)
-mean_spo2 = sorted_test_dfl['spo2'].mean(axis=0).round(1)
-mean_hr = sorted_test_dfl['hr'].mean(axis=0).round(1)
-
-# todo: 전체 평균->유저별 평균으로 고쳐야함
-sorted_test_dfl['bps'].fillna(mean_bps, inplace=True)
-sorted_test_dfl['bpd'].fillna(mean_bpd, inplace=True)
-sorted_test_dfl['spo2'].fillna(mean_spo2, inplace=True)
-sorted_test_dfl['hr'].fillna(mean_hr, inplace=True)
-
-## di 또는 chf 를 측정하지 않은 환자를 위한 채움
-sorted_test_dfl['di'].fillna(0,inplace=True)
-sorted_test_dfl['chf'].fillna(0,inplace=True)
-
-## 채움 끝
-
-# F == 1, M == 0
-sorted_test_dfl['gender'] = sorted_test_dfl['gender'].apply(lambda x: 1 if x == 'F' else 0)
-
-x = sorted_test_dfl[['bps','gender','bpd','hr','age','di','copd','chf','ht','afib']]
-
-y_pred = forest.predict(x_test)
-result = pd.DataFrame(data=y_pred[:,0])
-print(y_pred)
-# result.to_csv('./result.csv')
+run(file_path)
