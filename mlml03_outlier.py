@@ -44,7 +44,8 @@ def run(path):
 
     x_train, x_test, y_train, y_test = train_test_split(x,y,test_size=0.3,random_state=0)
 
-    forest = RandomForestClassifier(n_estimators=100,random_state=0)
+    from sklearn.ensemble import IsolationForest
+    forest = IsolationForest(n_estimators=100,random_state=0)
     
     forest.fit(x_train, y_train.values.ravel())
 

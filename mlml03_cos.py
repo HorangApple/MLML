@@ -2,7 +2,6 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn import metrics
 
-from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 
 file_path = './train.csv'
 test_file_path = './test.csv'
@@ -27,29 +26,28 @@ def run(path):
     sorted_dfl['spo2'].fillna(-1,inplace=True)
     sorted_dfl['spo2'] = pd.cut(sorted_dfl['spo2'], bins=[-2,0,88,9999],labels=[0,1,2])
 
-    sorted_dfl.to_csv('./result.csv')
+    # sorted_dfl.to_csv('./result.csv')
 
     ## di 또는 chf 를 측정하지 않은 환자를 위한 채움
     sorted_dfl['di'].fillna(2,inplace=True)
     sorted_dfl['chf'].fillna(2,inplace=True)
 
-    # alert -> Yes == 1, No == 0
-    sorted_dfl['alert'] = sorted_dfl['alert'].apply(lambda x: 1 if x == 'Yes' else 0)
-
     # gender -> F == 1, M == 0
     sorted_dfl['gender'] = sorted_dfl['gender'].apply(lambda x: 1 if x == 'F' else 0)
 
-    x = sorted_dfl[['bps','gender','bpd','spo2','hr','age','di','copd','chf','ht','afib']]
-    y = sorted_dfl[['alert']]
+    return sorted_dfl
 
-    x_train, x_test, y_train, y_test = train_test_split(x,y,test_size=0.3,random_state=0)
+train_file = run(file_path)
+test_file = run(test_file_path)
 
-    forest = RandomForestClassifier(n_estimators=100,random_state=0)
-    
-    forest.fit(x_train, y_train.values.ravel())
+train_file = train_file[['bps','gender','bpd','spo2','hr','age','di','copd','chf','ht','afib']]
+test_file = test_file[['bps','gender','bpd','spo2','hr','age','di','copd','chf','ht','afib']]
 
-    y_pred = forest.predict(x_test)
-    print('accuracy_score :',metrics.accuracy_score(y_test,y_pred))
-    print('roc_auc :',metrics.roc_auc_score(y_test.to_numpy(),y_pred))
+from scipy import spatial
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import TfidfVectorizer
+import numpy as np
 
-run(file_path)
+cosined = cosine_similarity(test_file.values, train_file.values)
+
+print(cosined)

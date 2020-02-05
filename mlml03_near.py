@@ -10,13 +10,14 @@ test_file_path = './test.csv'
 def run(path):
     dfl = pd.read_csv(path).drop('gl',axis=1)
 
-    sorted_dfl = dfl.sort_values(by='patientid').reset_index()
+    sorted_dfl = dfl.sort_values(by='patientid')
 
+    
     ## NaN 을 id 별 평균값으로 채움 시작
-    sorted_dfl['bps'] = sorted_dfl.groupby('patientid')['bps'].transform(lambda x: x.fillna(x.mean()))
-    sorted_dfl['bpd'] = sorted_dfl.groupby('patientid')['bpd'].transform(lambda x: x.fillna(x.mean()))
-    sorted_dfl['spo2'] = sorted_dfl.groupby('patientid')['spo2'].transform(lambda x: x.fillna(x.mean()))
-    sorted_dfl['hr'] = sorted_dfl.groupby('patientid')['hr'].transform(lambda x: x.fillna(x.mean()))
+    sorted_dfl['bps']=sorted_dfl['bps'].interpolate(method='nearest')
+    sorted_dfl['bpd']=sorted_dfl['bpd'].interpolate(method='nearest')
+    sorted_dfl['spo2']=sorted_dfl['spo2'].interpolate(method='nearest')
+    sorted_dfl['hr']=sorted_dfl['hr'].interpolate(method='nearest')
 
     sorted_dfl['w'] = sorted_dfl['w']-sorted_dfl['pw']
 
