@@ -18,8 +18,13 @@ def run(path):
     sorted_dfl['spo2'] = sorted_dfl.groupby('patientid')['spo2'].transform(lambda x: x.fillna(x.mean()))
     sorted_dfl['hr'] = sorted_dfl.groupby('patientid')['hr'].transform(lambda x: x.fillna(x.mean()))
 
-    sorted_dfl['w'] = sorted_dfl['w']-sorted_dfl['pw']
+    # sorted_dfl['bps']=sorted_dfl['bps'].interpolate(method='nearest')
+    # sorted_dfl['bpd']=sorted_dfl['bpd'].interpolate(method='nearest')
+    # sorted_dfl['spo2']=sorted_dfl['spo2'].interpolate(method='nearest')
+    # sorted_dfl['hr']=sorted_dfl['hr'].interpolate(method='nearest')
 
+    sorted_dfl['w'] = sorted_dfl['w']-sorted_dfl['pw']
+    sorted_dfl['w'] = pd.cut(sorted_dfl['w'],bins=[-9999,-1,1,9999],labels=[0,1,2])
     sorted_dfl['bps'] = pd.cut(sorted_dfl['bps'], bins=[0,85,180,9999],labels=[0,1,2])
     sorted_dfl['bpd'] = pd.cut(sorted_dfl['bpd'], bins=[0,40,110,9999],labels=[0,1,2])
 
@@ -43,7 +48,7 @@ sorted_dfl = run(file_path)
 sorted_dfl['alert'] = sorted_dfl['alert'].apply(lambda x: 1 if x == 'Yes' else 0)
 sorted_test_dfl = run(test_file_path)
 
-x = sorted_dfl[['bps','gender','bpd','spo2','hr','age','di','copd','chf','ht','afib']]
+x = sorted_dfl[['bps','gender','bpd','spo2','hr','age','di','copd','chf','ht','afib','w']]
 y = sorted_dfl[['alert']]
 
 x_train, x_test, y_train, y_test = train_test_split(x,y,test_size=0.3,random_state=0)
